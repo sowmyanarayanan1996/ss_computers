@@ -1,5 +1,3 @@
-
-
 import streamlit as st
 from datetime import datetime
 import sqlite3
@@ -15,6 +13,7 @@ def create_table():
                     course TEXT,
                     email TEXT,
                     contact TEXT,
+                    level TEXT,
                     enquiry_datetime TEXT
                 )''')
     c.execute('''CREATE TABLE IF NOT EXISTS admissions (
@@ -31,12 +30,12 @@ def create_table():
     conn.close()
 
 # Function to add a new enquiry
-def add_enquiry(candidate_name, course, email, contact):
+def add_enquiry(candidate_name, course, email, contact, level):
     enquiry_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     conn = sqlite3.connect("typewriting_institute.db")
     c = conn.cursor()
-    c.execute('''INSERT INTO enquiries (candidate_name, course, email, contact, enquiry_datetime)
-                VALUES (?, ?, ?, ?, ?)''', (candidate_name, course, email, contact, enquiry_datetime))
+    c.execute('''INSERT INTO enquiries (candidate_name, course, email, contact, level, enquiry_datetime)
+                VALUES (?, ?, ?, ?, ?, ?)''', (candidate_name, course, email, contact, level, enquiry_datetime))
     conn.commit()
     conn.close()
 
@@ -50,7 +49,8 @@ def add_admission(name, course, level, fees_structure, fees, address):
     conn.commit()
     conn.close()
 
-# Function to fetch all enquiries from the database
+# Function to fetch all enquiries
+# from the database
 def get_enquiries():
     conn = sqlite3.connect("typewriting_institute.db")
     c = conn.cursor()
@@ -103,7 +103,7 @@ def main():
         st.subheader("Enquiries")
         enquiries = get_enquiries()
         if enquiries:
-            enquiries_df = pd.DataFrame(enquiries, columns=["ID", "Candidate Name", "Course", "Email", "Contact", "Enquiry Datetime"])
+            enquiries_df = pd.DataFrame(enquiries, columns=["ID", "Candidate Name", "Course", "Email", "Contact", "Level", "Enquiry Datetime"])
             selected_enquiries = st.multiselect("Select Enquiries to Delete", enquiries_df["ID"].tolist())
             if st.button("Delete Selected Enquiries"):
                 delete_selected_enquiries(selected_enquiries)
@@ -131,12 +131,13 @@ def main():
         st.subheader("Add New Enquiry")
 
         candidate_name = st.text_input("Candidate Name")
-        course = st.text_input("Course")
+        course = st.selectbox("Course", ["Tamil", "English"])
         email = st.text_input("Email")
         contact = st.text_input("Contact")
+        level = st.selectbox("Level", ["Junior", "Senior"])
 
         if st.button("Submit Enquiry"):
-            add_enquiry(candidate_name, course, email, contact)
+            add_enquiry(candidate_name, course, email, contact, level)
             st.success("Enquiry added successfully!")
 
     # Admission section
@@ -148,11 +149,11 @@ def main():
         course = st.selectbox("Course", ["Tamil", "English"])
         level = st.selectbox("Level", ["Junior", "Senior"])
         fees_structure = st.selectbox("Fees Structure", ["Monthly", "Quarterly", "Yearly"])
-        fees = st.selectbox("Fees", ["650", "750", "550"])  # Corrected selectbox for fees
+        fees = st.selectbox("Fees", ["650", "750", "550"])
         address = st.text_area("Address")
 
         if st.button("Submit Admission"):
-            add_admission(name, course, level, fees_structure, fees, address)  # Corrected argument for fees
+            add_admission(name, course, level, fees_structure, fees, address)
             st.success("Admission added successfully!")
 
     # Finance section
