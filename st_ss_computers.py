@@ -1,14 +1,14 @@
+
+
 import streamlit as st
 from datetime import datetime
 import sqlite3
+import pandas as pd
 
 # Function to create the database table if it doesn't exist
 def create_table():
     conn = sqlite3.connect("typewriting_institute.db")
     c = conn.cursor()
-    # c.execute('''DROP TABLE IF EXISTS enquiries''')
-    # c.execute('''DROP TABLE IF EXISTS admissions''')
-
     c.execute('''CREATE TABLE IF NOT EXISTS enquiries (
                     id INTEGER PRIMARY KEY,
                     candidate_name TEXT,
@@ -40,7 +40,6 @@ def add_enquiry(candidate_name, course, email, contact):
     conn.commit()
     conn.close()
 
-
 # Function to add a new admission
 def add_admission(name, course, level, fees_structure, fees, address):
     admission_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -50,7 +49,6 @@ def add_admission(name, course, level, fees_structure, fees, address):
                 VALUES (?, ?, ?, ?, ?, ?, ?)''', (name, course, level, fees_structure, fees, address, admission_datetime))
     conn.commit()
     conn.close()
-
 
 # Function to fetch all enquiries from the database
 def get_enquiries():
@@ -70,6 +68,24 @@ def get_admissions():
     conn.close()
     return admissions
 
+# Function to delete selected enquiries
+def delete_selected_enquiries(selected_enquiries):
+    conn = sqlite3.connect("typewriting_institute.db")
+    c = conn.cursor()
+    for enquiry_id in selected_enquiries:
+        c.execute('''DELETE FROM enquiries WHERE id = ?''', (enquiry_id,))
+    conn.commit()
+    conn.close()
+
+# Function to delete selected admissions
+def delete_selected_admissions(selected_admissions):
+    conn = sqlite3.connect("typewriting_institute.db")
+    c = conn.cursor()
+    for admission_id in selected_admissions:
+        c.execute('''DELETE FROM admissions WHERE id = ?''', (admission_id,))
+    conn.commit()
+    conn.close()
+
 # Main Streamlit app
 def main():
     create_table()
@@ -82,17 +98,30 @@ def main():
     # Dashboard section
     if option == "Dashboard":
         st.header("Dashboard")
+        
+        # Enquiries
         st.subheader("Enquiries")
         enquiries = get_enquiries()
         if enquiries:
-            st.table(enquiries)
+            enquiries_df = pd.DataFrame(enquiries, columns=["ID", "Candidate Name", "Course", "Email", "Contact", "Enquiry Datetime"])
+            selected_enquiries = st.multiselect("Select Enquiries to Delete", enquiries_df["ID"].tolist())
+            if st.button("Delete Selected Enquiries"):
+                delete_selected_enquiries(selected_enquiries)
+                st.success("Enquiries deleted successfully!")
+            st.write(enquiries_df)
         else:
             st.info("No enquiries found.")
         
+        # Admissions
         st.subheader("Admissions")
         admissions = get_admissions()
         if admissions:
-            st.table(admissions)
+            admissions_df = pd.DataFrame(admissions, columns=["ID", "Name", "Course", "Level", "Fees Structure", "Fees", "Address", "Admission Datetime"])
+            selected_admissions = st.multiselect("Select Admissions to Delete", admissions_df["ID"].tolist())
+            if st.button("Delete Selected Admissions"):
+                delete_selected_admissions(selected_admissions)
+                st.success("Admissions deleted successfully!")
+            st.write(admissions_df)
         else:
             st.info("No admissions found.")
 
@@ -110,7 +139,6 @@ def main():
             add_enquiry(candidate_name, course, email, contact)
             st.success("Enquiry added successfully!")
 
-    # Admission section
     # Admission section
     elif option == "Admission":
         st.header("Admission")
@@ -142,5 +170,6 @@ def main():
         # Calculate total fees collected
         total_fees_collected = sum(int(admission[5]) for admission in get_admissions())
         st.subheader(f"Total Fees Collected: {total_fees_collected} INR")
+
 if __name__ == "__main__":
     main()
